@@ -1,7 +1,10 @@
+from traceback import print_tb
 import matplotlib.pyplot as plt
 import numpy as np
 import utils as uts
 from scipy.stats import ttest_1samp
+from scipy.stats import geom
+
 
 data_file = open('./echocardiogram.data', 'r')
 file_lines = data_file.readlines() # le as linhas e as guarda em uma lista
@@ -20,8 +23,8 @@ for lineIndex in range(len(file_lines)):
 
 
 # Primeira Análise ===============================================================
-# H_0 -> não morre no espaço de 1 ano após o ataque cardiaco (S >= 12 meses)
-# H_A -> morre no espaço de 1 ano após o ataque cardiaco (S < 12 meses)
+# H_0 -> Uma pessoa irá morrer dentro de 12 meses após o primeiro ataque (S < =12 meses)
+# H_A -> A pessoa sobrevive mais de um ano (S > 12 meses)
 #  - Nível se significância (a) = 0.05
 #  - Calcular Sigma
 #  - Estatistica de teste z
@@ -29,7 +32,7 @@ for lineIndex in range(len(file_lines)):
 #  - Encontrar valor p (Rejeita p<= a)
 
 survivalTimes = []
-critValue = 1.660
+critValue = 1.660 #Região crítica tabelado com base no grau de liberdade (100+)
 a = b = 0
 
 for line in clearedData:
@@ -40,11 +43,25 @@ for line in clearedData:
             b = b+1
         survivalTimes.append(line[0]) #Limpando ainda mais o array (Retirando os "None"'s)
 
-#Percentagem de pessoas que viveram mais de 12 meses
-H0percent = a/len(survivalTimes)
-H1percent = 1 - H0percent
+#Fazendo o teste de hipoteses
+test, pval = ttest_1samp(survivalTimes, 12, alternative='greater')
 
-print(H0percent, H1percent)
+if(pval<=0.05):
+    print('A hipotese nula foi rejeitada')
+else:
+    print('Nao ha evidencias suficientes para negar a hipotese nula')
+
+#Tentativa de plot
+fig, ax = plt.subplots(1, 1)
+p = b/len(survivalTimes)
+x = np.arange(0,60,2)
+
+mean, var, skew, kurt = geom.stats(p, moments='mvsk')
+
+ax.plot(x,geom.pmf(x,p),'ro', label = "Suvival Distribution")
+
+plt.show()
+
 
 
 
