@@ -1,5 +1,7 @@
+from statistics import pstdev
 from traceback import print_tb
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 import utils as uts
 from scipy.stats import ttest_1samp
@@ -33,15 +35,17 @@ for lineIndex in range(len(file_lines)):
 
 survivalTimes = []
 critValue = 1.660 #Região crítica tabelado com base no grau de liberdade (100+)
-a = b = 0
+a = b = c = 0
 
 for line in clearedData:
     if line[0]:
         if line[0]>=12:
-            a = a+1
+            a = a + 1 
         else:
-            b = b+1
+            b = b + 1  
         survivalTimes.append(line[0]) #Limpando ainda mais o array (Retirando os "None"'s)
+        if line[0]<=1.04732143:
+            c = c + 1
 
 #Fazendo o teste de hipoteses
 test, pval = ttest_1samp(survivalTimes, 12, alternative='greater')
@@ -52,19 +56,34 @@ else:
     print('Nao ha evidencias suficientes para negar a hipotese nula')
 
 #Tentativa de plot
-fig, ax = plt.subplots(1, 1)
-p = b/len(survivalTimes)
-x = np.arange(0,60,2)
+#Utilizando uma distribuição Binomial, com base em diversas provas de Bernoulli
+fig, ax = plt.subplots()
+fig2, axx = plt.subplots()
 
-mean, var, skew, kurt = geom.stats(p, moments='mvsk')
 
-ax.plot(x,geom.pmf(x,p),'ro', label = "Suvival Distribution")
+#print(np.floor(max(survivalTimes)))
+
+bin_edges = np.linspace(min(survivalTimes), max(survivalTimes), num=57, endpoint=True)
+count, bins, ignored = ax.hist(survivalTimes, bin_edges, density= False)
+
+Curva = pd.DataFrame(survivalTimes)
+Curva.agg(['min', 'max', 'mean', 'std']).round(decimals=2)
+Curva.plot.kde(ax=axx, legend=False, title='Months survived after first heart attack (KDE)')
+Curva.plot.hist(density=True, ax=axx)
+
+ax.grid(axis='y', alpha=0.75) 
+axx.grid(axis='y', alpha=0.75)
+ax.text(3.24,23.0, 'y = 23')
+
+ax.set_ylabel('Patients')
+ax.set_xlabel('Months Survived')
+ax.set_title('Months survived after first heart attack (KDE)')
+ax.set_facecolor('#D6CFC7')
+axx.set_ylabel('Patients')
+axx.set_xlabel('Months Survived')
+axx.set_facecolor('#D6CFC7')
 
 plt.show()
-
-
-
-
 
 # Segunda Análise ===============================================================
 # Dado que a pessoa teve um ataque cardiaco, qual a probabilidade que tendo um LVDD baixo e um EPSS alto que ela tenha ataque cardiaco
